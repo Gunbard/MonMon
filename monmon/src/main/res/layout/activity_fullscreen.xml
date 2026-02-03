@@ -47,5 +47,9 @@
         android:textColor="?attr/fullscreenTextColor"
         android:textSize="50sp"
         android:textStyle="bold" />
-
+    <com.serenegiant.widget.AspectRatioSurfaceView
+        android:id="@+id/svCameraViewMain"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true" />
 </FrameLayout>

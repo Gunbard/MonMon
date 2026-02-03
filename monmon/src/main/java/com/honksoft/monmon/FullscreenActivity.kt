@@ -1,17 +1,28 @@
 package com.honksoft.monmon
 
-import androidx.appcompat.app.AppCompatActivity
+import android.R.attr.text
 import android.annotation.SuppressLint
+import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
+import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowInsets
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.herohan.uvcapp.CameraHelper
+import com.herohan.uvcapp.ICameraHelper
+import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE
+import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE_DELAY_MILLIS
 import com.honksoft.monmon.databinding.ActivityFullscreenBinding
+import com.serenegiant.usb.Size
+import com.serenegiant.widget.AspectRatioSurfaceView
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -23,6 +34,10 @@ class FullscreenActivity : AppCompatActivity() {
   private lateinit var fullscreenContent: TextView
   private lateinit var fullscreenContentControls: LinearLayout
   private val hideHandler = Handler(Looper.myLooper()!!)
+
+  private var cameraHelper: ICameraHelper? = null
+
+  private lateinit var cameraViewMain: AspectRatioSurfaceView
 
   @SuppressLint("InlinedApi")
   private val hidePart2Runnable = Runnable {
@@ -75,9 +90,7 @@ class FullscreenActivity : AppCompatActivity() {
 
     binding = ActivityFullscreenBinding.inflate(layoutInflater)
     setContentView(binding.root)
-
     supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
     isFullscreen = true
 
     // Set up the user interaction to manually show or hide the system UI.
@@ -90,6 +103,89 @@ class FullscreenActivity : AppCompatActivity() {
     // operations to prevent the jarring behavior of controls going away
     // while interacting with the UI.
     binding.dummyButton.setOnTouchListener(delayHideTouchListener)
+    supportActionBar
+    cameraViewMain = findViewById(R.id.svCameraViewMain)
+    cameraViewMain.setAspectRatio(640, 480)
+
+    cameraViewMain.getHolder().addCallback(object : SurfaceHolder.Callback {
+      override fun surfaceCreated(holder: SurfaceHolder) {
+        cameraHelper?.addSurface(holder.getSurface(), false)
+      }
+
+      override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+      }
+
+      override fun surfaceDestroyed(holder: SurfaceHolder) {
+        cameraHelper?.removeSurface(holder.getSurface())
+      }
+    })
+  }
+
+  override fun onStart() {
+    super.onStart()
+    initCameraHelper()
+  }
+
+  override fun onStop() {
+    super.onStop()
+    clearCameraHelper()
+  }
+
+  private fun initCameraHelper() {
+    if (cameraHelper == null) {
+      cameraHelper = CameraHelper()
+      cameraHelper?.setStateCallback(stateListener)
+    }
+  }
+
+  private fun clearCameraHelper() {
+      cameraHelper?.release()
+      cameraHelper = null
+  }
+  private fun selectDevice(device: UsbDevice) {
+    cameraHelper?.selectDevice(device)
+  }
+
+  private val stateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
+    override fun onAttach(device: UsbDevice) {
+      selectDevice(device)
+    }
+
+    override fun onDeviceOpen(device: UsbDevice?, isFirstOpen: Boolean) {
+      Toast.makeText(this@FullscreenActivity,"Device opened", Toast.LENGTH_SHORT).show()
+      cameraHelper?.openCamera()
+    }
+
+    override fun onCameraOpen(device: UsbDevice?) {
+      cameraHelper?.startPreview()
+
+      Toast.makeText(this@FullscreenActivity,"Camera opened", Toast.LENGTH_SHORT).show()
+
+      val size: Size? = cameraHelper?.getPreviewSize()
+      if (size != null) {
+        val width = size.width
+        val height = size.height
+        //auto aspect ratio
+        cameraViewMain.setAspectRatio(width, height)
+      }
+
+      cameraHelper?.addSurface(cameraViewMain.getHolder().getSurface(), false)
+    }
+
+    override fun onCameraClose(device: UsbDevice?) {
+      if (cameraHelper != null) {
+        cameraHelper?.removeSurface(cameraViewMain.getHolder().getSurface())
+      }
+    }
+
+    override fun onDeviceClose(device: UsbDevice?) {
+    }
+
+    override fun onDetach(device: UsbDevice?) {
+    }
+
+    override fun onCancel(device: UsbDevice?) {
+    }
   }
 
   override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -106,6 +202,13 @@ class FullscreenActivity : AppCompatActivity() {
       hide()
     } else {
       show()
+    }
+
+    // select a uvc device
+    val list: MutableList<UsbDevice?>? = cameraHelper?.getDeviceList()
+    if (list != null && list.size > 0) {
+      Toast.makeText(this, "Devices: %1s".format(list.get(0)), Toast.LENGTH_SHORT).show()
+      cameraHelper?.selectDevice(list.get(0))
     }
   }
 

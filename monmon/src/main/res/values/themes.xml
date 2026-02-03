@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MonMon" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.MonMon" parent="Theme.AppCompat" />
 
     <style name="Theme.MonMon.Fullscreen" parent="Theme.MonMon">
         <item name="android:actionBarStyle">@style/Widget.Theme.MonMon.ActionBar.Fullscreen</item>

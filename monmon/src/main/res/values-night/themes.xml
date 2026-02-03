@@ -1,4 +1,5 @@
 <resources>
+    <style name="Theme.MonMon" parent="Theme.AppCompat" />
 
     <style name="ThemeOverlay.MonMon.FullscreenContainer" parent="">
         <item name="fullscreenBackgroundColor">@color/light_blue_900</item>
