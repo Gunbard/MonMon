@@ -1,13 +1,11 @@
 package com.honksoft.monmon
 
-import android.R.attr.text
 import android.annotation.SuppressLint
 import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.View
@@ -135,13 +133,21 @@ class FullscreenActivity : AppCompatActivity() {
     if (cameraHelper == null) {
       cameraHelper = CameraHelper()
       cameraHelper?.setStateCallback(stateListener)
+
+      // select a uvc device
+      val list: MutableList<UsbDevice?>? = cameraHelper?.getDeviceList()
+      if (list != null && list.size > 0) {
+        Toast.makeText(this, "Devices: %1s".format(list.get(0)), Toast.LENGTH_SHORT).show()
+        cameraHelper?.selectDevice(list.get(0))
+      }
     }
   }
 
   private fun clearCameraHelper() {
-      cameraHelper?.release()
-      cameraHelper = null
+    cameraHelper?.release()
+    cameraHelper = null
   }
+
   private fun selectDevice(device: UsbDevice) {
     cameraHelper?.selectDevice(device)
   }
@@ -152,14 +158,14 @@ class FullscreenActivity : AppCompatActivity() {
     }
 
     override fun onDeviceOpen(device: UsbDevice?, isFirstOpen: Boolean) {
-      Toast.makeText(this@FullscreenActivity,"Device opened", Toast.LENGTH_SHORT).show()
+      Toast.makeText(this@FullscreenActivity, "Device opened", Toast.LENGTH_SHORT).show()
       cameraHelper?.openCamera()
     }
 
     override fun onCameraOpen(device: UsbDevice?) {
       cameraHelper?.startPreview()
 
-      Toast.makeText(this@FullscreenActivity,"Camera opened", Toast.LENGTH_SHORT).show()
+      Toast.makeText(this@FullscreenActivity, "Camera opened", Toast.LENGTH_SHORT).show()
 
       val size: Size? = cameraHelper?.getPreviewSize()
       if (size != null) {
@@ -202,13 +208,6 @@ class FullscreenActivity : AppCompatActivity() {
       hide()
     } else {
       show()
-    }
-
-    // select a uvc device
-    val list: MutableList<UsbDevice?>? = cameraHelper?.getDeviceList()
-    if (list != null && list.size > 0) {
-      Toast.makeText(this, "Devices: %1s".format(list.get(0)), Toast.LENGTH_SHORT).show()
-      cameraHelper?.selectDevice(list.get(0))
     }
   }
 
