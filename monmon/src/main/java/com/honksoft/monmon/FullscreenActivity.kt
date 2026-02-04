@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -27,8 +28,11 @@ import com.serenegiant.usb.Size
 import com.serenegiant.usb.UVCCamera
 import com.serenegiant.widget.AspectRatioSurfaceView
 import org.opencv.android.OpenCVLoader
+import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.Point
+import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
 import java.nio.ByteBuffer
 
@@ -42,11 +46,9 @@ class FullscreenActivity : AppCompatActivity() {
   private lateinit var fullscreenContent: TextView
   private lateinit var fullscreenContentControls: LinearLayout
   private val hideHandler = Handler(Looper.myLooper()!!)
-
   private var cameraHelper: ICameraHelper? = null
   private lateinit var cameraViewMain: AspectRatioSurfaceView
   private lateinit var cameraOverlay: ImageView
-  private lateinit var intermediateMat: Mat
   private lateinit var imageTools: ImageTools
 
   @SuppressLint("InlinedApi")
@@ -97,6 +99,7 @@ class FullscreenActivity : AppCompatActivity() {
   @SuppressLint("ClickableViewAccessibility")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
     // Init OpenCV
     if (OpenCVLoader.initLocal()) {
@@ -121,12 +124,10 @@ class FullscreenActivity : AppCompatActivity() {
     // Upon interacting with UI controls, delay any scheduled hide()
     // operations to prevent the jarring behavior of controls going away
     // while interacting with the UI.
-    binding.dummyButton.setOnTouchListener(delayHideTouchListener)
     supportActionBar
     cameraViewMain = findViewById(R.id.svCameraViewMain)
     cameraViewMain.setAspectRatio(640, 480)
     cameraOverlay = findViewById(R.id.svCameraOverlay)
-    //cameraOverlay.setAspectRatio(640, 480)
 
     cameraViewMain.getHolder().addCallback(object : SurfaceHolder.Callback {
       override fun surfaceCreated(holder: SurfaceHolder) {
@@ -162,6 +163,8 @@ class FullscreenActivity : AppCompatActivity() {
       if (list != null && list.size > 0) {
         Toast.makeText(this, "Devices: %1s".format(list.get(0)?.deviceName), Toast.LENGTH_SHORT).show()
         cameraHelper?.selectDevice(list.get(0))
+      } else {
+        Toast.makeText(this, "No usable USB UVC device found!", Toast.LENGTH_LONG).show();
       }
     }
   }
@@ -170,30 +173,6 @@ class FullscreenActivity : AppCompatActivity() {
     cameraHelper?.release()
     cameraHelper = null
   }
-
-
-//  override fun onCameraFrame(inputFrame: CameraBridgeViewBase.CvCameraViewFrame?): Mat {
-//    val rgba = inputFrame!!.rgba()
-//    val sizeRgba: org.opencv.core.Size = rgba.size()
-//
-//    val rgbaInnerWindow: Mat?
-//    val intermediateMat = Mat()
-//
-//    val rows = sizeRgba.height
-//    val cols = sizeRgba.width
-//
-//    val left: Int = (cols / 8).toInt()
-//    val top: Int = (rows / 8).toInt()
-//
-//    val width = cols * 3 / 4.0
-//    val height = rows * 3 / 4.0
-//
-//    rgbaInnerWindow = rgba.submat(top, (top + height).toInt(), left, (left + width).toInt());
-//    Imgproc.Canny(rgbaInnerWindow, intermediateMat, 80.0, 90.0);
-//    Imgproc.cvtColor(intermediateMat, rgbaInnerWindow, Imgproc.COLOR_GRAY2BGRA, 4);
-//    rgbaInnerWindow.release();
-//    return rgba
-//  }
 
   private fun selectDevice(device: UsbDevice) {
     cameraHelper?.selectDevice(device)
@@ -211,55 +190,60 @@ class FullscreenActivity : AppCompatActivity() {
     override fun onCameraOpen(device: UsbDevice?) {
       cameraHelper?.startPreview()
 
-      val size: Size? = cameraHelper?.getPreviewSize()
-      if (size != null) {
-        val width = size.width
-        val height = size.height
-        //auto aspect ratio
-        cameraViewMain.setAspectRatio(width, height)
-      }
+//      val size: Size? = cameraHelper?.getPreviewSize()
+//      if (size != null) {
+//        val width = size.width
+//        val height = size.height
+//        //auto aspect ratio
+//        cameraViewMain.setAspectRatio(width, height)
+//      }
 
-      cameraHelper?.addSurface(cameraViewMain.getHolder().getSurface(), false)
+      //cameraHelper?.addSurface(cameraViewMain.getHolder().getSurface(), false)
       cameraHelper?.setFrameCallback(IFrameCallback { frame: ByteBuffer? ->
         val nv21 = ByteArray(frame!!.remaining())
         frame.get(nv21, 0, nv21.size)
 
         val size: Size? = cameraHelper?.getPreviewSize()
 
-        // Process frame
+        // START PROCESSING FRAME. This could probably be more efficient but requires digging more
+        // into OpenCV, which is currently a heap of undocumented trash.
+
+        // Convert from nv21 to something OpenCV can work with
         var yuv = Mat(size!!.height + size.height/2, size.width, CvType.CV_8UC1)
         yuv.put(0, 0, nv21);
         var rgba = Mat(size.width, size.height, CvType.CV_8UC1)
         Imgproc.cvtColor( yuv, rgba, Imgproc.COLOR_YUV2RGB_NV21, 4 );
 
-        val sizeRgba: org.opencv.core.Size = rgba.size()
-
-        val rgbaInnerWindow: Mat?
-        val rows = sizeRgba.height
-        val cols = sizeRgba.width
-
-        val left: Int = (cols / 8).toInt()
-        val top: Int = (rows / 8).toInt()
-
-        val width: Int = (cols * 3 / 4).toInt()
-        val height: Int = (rows * 3 / 4).toInt()
-
-        // Process image
-        //rgbaInnerWindow = rgba.submat(top, top + height, left, left + width);
-        //Imgproc.Canny(rgba, rgba, 175.0, 200.0);
-//        //Imgproc.cvtColor(intermediateMat, rgbaInnerWindow, Imgproc.COLOR_GRAY2BGRA, 4);
-//        Imgproc.cvtColor(intermediateMat, rgbaInnerWindow, Imgproc.COLOR_GRAY2BGRA, 4);
-//        rgbaInnerWindow?.release();
-
         val imgGray = Mat()
         val cannyEdges = Mat()
-        Imgproc.cvtColor(rgba, imgGray, Imgproc.COLOR_RGBA2GRAY)
-        Imgproc.GaussianBlur(imgGray, imgGray, org.opencv.core.Size(5.0, 5.0), 2.0, 2.0)
-        Imgproc.Canny(imgGray, cannyEdges, 35.0, 75.0)
+        val colorized = Mat()
+        val mergedImage = Mat()
 
-        val bmp: Bitmap? = imageTools.matToBitMap(cannyEdges)
-//        val bmp: Bitmap = createBitmap(size.width, size.height)
-//        Utils.matToBitmap(rgba, bmp);
+        // Convert source image to grayscale
+        Imgproc.cvtColor(rgba, imgGray, Imgproc.COLOR_RGBA2GRAY)
+
+        // Blur source image for easier edge detection
+        Imgproc.GaussianBlur(imgGray, imgGray, org.opencv.core.Size(5.0, 5.0), 6.0, 6.0)
+
+        // Do teh edging
+        Imgproc.Canny(imgGray, cannyEdges, 55.0, 75.0)
+
+        // Convert grayscale edges to RGBA colorspace (still gray though)
+        Imgproc.cvtColor(cannyEdges, colorized, Imgproc.COLOR_GRAY2RGBA)
+
+        // Colorize edges to overlay on source image
+        Core.multiply(colorized, Scalar(5.0, 0.0, 0.0), colorized)
+
+        // Thicken lines for better visibility
+        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, org.opencv.core.Size(3.0, 3.0))
+        // Apply dilation (iterations=1 for subtle thickening, more for thicker lines)
+        Imgproc.dilate(colorized, colorized, kernel, Point(-1.0, -1.0), 1)
+
+        // Merge overlay with source image
+        Core.addWeighted(rgba, 1.0, colorized, 0.7, 0.0, mergedImage)
+
+        // Convert the OpenCV matrix to a bitmap that Android can use
+        val bmp: Bitmap? = imageTools.matToBitMap(mergedImage)
 
         runOnUiThread(Runnable {
           cameraOverlay.setImageBitmap(bmp)

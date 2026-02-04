@@ -18,13 +18,22 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MonMon">
+
         <activity
             android:name=".FullscreenActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="false"
             android:label="@string/title_activity_fullscreen"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/Theme.MonMon.Fullscreen" />
+            android:theme="@style/Theme.MonMon.Fullscreen">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+
+        </activity>
 
         <activity
             android:name=".MainActivity"
