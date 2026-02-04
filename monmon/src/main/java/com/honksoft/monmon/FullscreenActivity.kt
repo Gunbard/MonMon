@@ -226,7 +226,7 @@ class FullscreenActivity : AppCompatActivity() {
         Imgproc.GaussianBlur(imgGray, imgGray, org.opencv.core.Size(5.0, 5.0), 6.0, 6.0)
 
         // Do teh edging
-        Imgproc.Canny(imgGray, cannyEdges, 55.0, 75.0)
+        Imgproc.Canny(imgGray, cannyEdges, 80.0, 100.0)
 
         // Convert grayscale edges to RGBA colorspace (still gray though)
         Imgproc.cvtColor(cannyEdges, colorized, Imgproc.COLOR_GRAY2RGBA)
@@ -235,7 +235,7 @@ class FullscreenActivity : AppCompatActivity() {
         Core.multiply(colorized, Scalar(5.0, 0.0, 0.0), colorized)
 
         // Thicken lines for better visibility
-        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, org.opencv.core.Size(3.0, 3.0))
+        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, org.opencv.core.Size(5.0, 5.0))
         // Apply dilation (iterations=1 for subtle thickening, more for thicker lines)
         Imgproc.dilate(colorized, colorized, kernel, Point(-1.0, -1.0), 1)
 
