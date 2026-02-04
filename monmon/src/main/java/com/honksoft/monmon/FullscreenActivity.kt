@@ -1,15 +1,18 @@
 package com.honksoft.monmon
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowInsets
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -19,8 +22,15 @@ import com.herohan.uvcapp.ICameraHelper
 import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE
 import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE_DELAY_MILLIS
 import com.honksoft.monmon.databinding.ActivityFullscreenBinding
+import com.serenegiant.usb.IFrameCallback
 import com.serenegiant.usb.Size
+import com.serenegiant.usb.UVCCamera
 import com.serenegiant.widget.AspectRatioSurfaceView
+import org.opencv.android.OpenCVLoader
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
+import java.nio.ByteBuffer
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -34,8 +44,10 @@ class FullscreenActivity : AppCompatActivity() {
   private val hideHandler = Handler(Looper.myLooper()!!)
 
   private var cameraHelper: ICameraHelper? = null
-
   private lateinit var cameraViewMain: AspectRatioSurfaceView
+  private lateinit var cameraOverlay: ImageView
+  private lateinit var intermediateMat: Mat
+  private lateinit var imageTools: ImageTools
 
   @SuppressLint("InlinedApi")
   private val hidePart2Runnable = Runnable {
@@ -86,10 +98,19 @@ class FullscreenActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    // Init OpenCV
+    if (OpenCVLoader.initLocal()) {
+      Log.i(TAG, "OpenCV loaded successfully");
+    } else {
+      Toast.makeText(this, "OpenCV initialization failed!", Toast.LENGTH_LONG).show();
+    }
+
     binding = ActivityFullscreenBinding.inflate(layoutInflater)
     setContentView(binding.root)
     supportActionBar?.setDisplayHomeAsUpEnabled(true)
     isFullscreen = true
+
+    imageTools = ImageTools(this)
 
     // Set up the user interaction to manually show or hide the system UI.
     fullscreenContent = binding.fullscreenContent
@@ -104,6 +125,8 @@ class FullscreenActivity : AppCompatActivity() {
     supportActionBar
     cameraViewMain = findViewById(R.id.svCameraViewMain)
     cameraViewMain.setAspectRatio(640, 480)
+    cameraOverlay = findViewById(R.id.svCameraOverlay)
+    //cameraOverlay.setAspectRatio(640, 480)
 
     cameraViewMain.getHolder().addCallback(object : SurfaceHolder.Callback {
       override fun surfaceCreated(holder: SurfaceHolder) {
@@ -137,7 +160,7 @@ class FullscreenActivity : AppCompatActivity() {
       // select a uvc device
       val list: MutableList<UsbDevice?>? = cameraHelper?.getDeviceList()
       if (list != null && list.size > 0) {
-        Toast.makeText(this, "Devices: %1s".format(list.get(0)), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Devices: %1s".format(list.get(0)?.deviceName), Toast.LENGTH_SHORT).show()
         cameraHelper?.selectDevice(list.get(0))
       }
     }
@@ -147,6 +170,30 @@ class FullscreenActivity : AppCompatActivity() {
     cameraHelper?.release()
     cameraHelper = null
   }
+
+
+//  override fun onCameraFrame(inputFrame: CameraBridgeViewBase.CvCameraViewFrame?): Mat {
+//    val rgba = inputFrame!!.rgba()
+//    val sizeRgba: org.opencv.core.Size = rgba.size()
+//
+//    val rgbaInnerWindow: Mat?
+//    val intermediateMat = Mat()
+//
+//    val rows = sizeRgba.height
+//    val cols = sizeRgba.width
+//
+//    val left: Int = (cols / 8).toInt()
+//    val top: Int = (rows / 8).toInt()
+//
+//    val width = cols * 3 / 4.0
+//    val height = rows * 3 / 4.0
+//
+//    rgbaInnerWindow = rgba.submat(top, (top + height).toInt(), left, (left + width).toInt());
+//    Imgproc.Canny(rgbaInnerWindow, intermediateMat, 80.0, 90.0);
+//    Imgproc.cvtColor(intermediateMat, rgbaInnerWindow, Imgproc.COLOR_GRAY2BGRA, 4);
+//    rgbaInnerWindow.release();
+//    return rgba
+//  }
 
   private fun selectDevice(device: UsbDevice) {
     cameraHelper?.selectDevice(device)
@@ -158,14 +205,11 @@ class FullscreenActivity : AppCompatActivity() {
     }
 
     override fun onDeviceOpen(device: UsbDevice?, isFirstOpen: Boolean) {
-      Toast.makeText(this@FullscreenActivity, "Device opened", Toast.LENGTH_SHORT).show()
       cameraHelper?.openCamera()
     }
 
     override fun onCameraOpen(device: UsbDevice?) {
       cameraHelper?.startPreview()
-
-      Toast.makeText(this@FullscreenActivity, "Camera opened", Toast.LENGTH_SHORT).show()
 
       val size: Size? = cameraHelper?.getPreviewSize()
       if (size != null) {
@@ -176,6 +220,51 @@ class FullscreenActivity : AppCompatActivity() {
       }
 
       cameraHelper?.addSurface(cameraViewMain.getHolder().getSurface(), false)
+      cameraHelper?.setFrameCallback(IFrameCallback { frame: ByteBuffer? ->
+        val nv21 = ByteArray(frame!!.remaining())
+        frame.get(nv21, 0, nv21.size)
+
+        val size: Size? = cameraHelper?.getPreviewSize()
+
+        // Process frame
+        var yuv = Mat(size!!.height + size.height/2, size.width, CvType.CV_8UC1)
+        yuv.put(0, 0, nv21);
+        var rgba = Mat(size.width, size.height, CvType.CV_8UC1)
+        Imgproc.cvtColor( yuv, rgba, Imgproc.COLOR_YUV2RGB_NV21, 4 );
+
+        val sizeRgba: org.opencv.core.Size = rgba.size()
+
+        val rgbaInnerWindow: Mat?
+        val rows = sizeRgba.height
+        val cols = sizeRgba.width
+
+        val left: Int = (cols / 8).toInt()
+        val top: Int = (rows / 8).toInt()
+
+        val width: Int = (cols * 3 / 4).toInt()
+        val height: Int = (rows * 3 / 4).toInt()
+
+        // Process image
+        //rgbaInnerWindow = rgba.submat(top, top + height, left, left + width);
+        //Imgproc.Canny(rgba, rgba, 175.0, 200.0);
+//        //Imgproc.cvtColor(intermediateMat, rgbaInnerWindow, Imgproc.COLOR_GRAY2BGRA, 4);
+//        Imgproc.cvtColor(intermediateMat, rgbaInnerWindow, Imgproc.COLOR_GRAY2BGRA, 4);
+//        rgbaInnerWindow?.release();
+
+        val imgGray = Mat()
+        val cannyEdges = Mat()
+        Imgproc.cvtColor(rgba, imgGray, Imgproc.COLOR_RGBA2GRAY)
+        Imgproc.GaussianBlur(imgGray, imgGray, org.opencv.core.Size(5.0, 5.0), 2.0, 2.0)
+        Imgproc.Canny(imgGray, cannyEdges, 35.0, 75.0)
+
+        val bmp: Bitmap? = imageTools.matToBitMap(cannyEdges)
+//        val bmp: Bitmap = createBitmap(size.width, size.height)
+//        Utils.matToBitmap(rgba, bmp);
+
+        runOnUiThread(Runnable {
+          cameraOverlay.setImageBitmap(bmp)
+        })
+      }, UVCCamera.PIXEL_FORMAT_NV21)
     }
 
     override fun onCameraClose(device: UsbDevice?) {
@@ -248,6 +337,7 @@ class FullscreenActivity : AppCompatActivity() {
   }
 
   companion object {
+    private const val TAG = "MonMon"
     /**
      * Whether or not the system UI should be auto-hidden after
      * [AUTO_HIDE_DELAY_MILLIS] milliseconds.
