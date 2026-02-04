@@ -23,6 +23,17 @@
             android:layout_gravity="bottom|center_horizontal"
             android:orientation="horizontal"
             tools:ignore="UselessParent" />
+
+        <TextView
+            android:id="@+id/fullscreen_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text=""
+            android:textColor="?attr/fullscreenTextColor"
+            android:textSize="50sp"
+            android:textStyle="bold"
+            android:visibility="visible" />
     </FrameLayout>
 
     <!-- This FrameLayout insets its children based on system windows using
@@ -41,16 +52,4 @@
         android:layout_height="match_parent"
         android:layout_centerInParent="true"
         android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/fullscreen_content"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:keepScreenOn="true"
-        android:text=""
-        android:textColor="?attr/fullscreenTextColor"
-        android:textSize="50sp"
-        android:textStyle="bold"
-        android:visibility="visible" />
 </RelativeLayout>

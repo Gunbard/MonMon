@@ -1,14 +1,20 @@
 package com.honksoft.monmon
 
+import android.R.attr.onClick
 import android.annotation.SuppressLint
+import android.gesture.Gesture
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
+import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowInsets
@@ -50,6 +56,8 @@ class FullscreenActivity : AppCompatActivity() {
   private lateinit var cameraViewMain: AspectRatioSurfaceView
   private lateinit var cameraOverlay: ImageView
   private lateinit var imageTools: ImageTools
+  private lateinit var scaleGestureDetector: ScaleGestureDetector
+  private lateinit var panGestureDetector: GestureDetector
 
   @SuppressLint("InlinedApi")
   private val hidePart2Runnable = Runnable {
@@ -75,6 +83,8 @@ class FullscreenActivity : AppCompatActivity() {
     fullscreenContentControls.visibility = View.VISIBLE
   }
   private var isFullscreen: Boolean = false
+
+  private var isPinching = false
 
   private val hideRunnable = Runnable { hide() }
 
@@ -105,7 +115,11 @@ class FullscreenActivity : AppCompatActivity() {
     if (OpenCVLoader.initLocal()) {
       Log.i(TAG, "OpenCV loaded successfully");
     } else {
-      Toast.makeText(this, "OpenCV initialization failed!", Toast.LENGTH_LONG).show();
+      Toast.makeText(
+        this,
+        "OpenCV initialization failed!",
+        Toast.LENGTH_LONG)
+        .show()
     }
 
     binding = ActivityFullscreenBinding.inflate(layoutInflater)
@@ -117,7 +131,28 @@ class FullscreenActivity : AppCompatActivity() {
 
     // Set up the user interaction to manually show or hide the system UI.
     fullscreenContent = binding.fullscreenContent
-    fullscreenContent.setOnClickListener { toggle() }
+    fullscreenContent.setOnTouchListener { v, event ->
+      panGestureDetector.onTouchEvent(event)
+      scaleGestureDetector.onTouchEvent(event)
+
+      when (event.actionMasked) {
+        MotionEvent.ACTION_DOWN -> {
+          isPinching = false
+        }
+        MotionEvent.ACTION_POINTER_DOWN -> {
+          // A second finger touched the screen
+          isPinching = true
+        }
+        MotionEvent.ACTION_UP -> {
+          // Final check: was a pinch active during this touch sequence?
+          // scaleDetector.isInProgress remains true until fingers are lifted
+          if (!isPinching && !scaleGestureDetector.isInProgress) {
+            toggle()
+          }
+        }
+      }
+      true // Consume the event
+    }
 
     fullscreenContentControls = binding.fullscreenContentControls
 
@@ -128,6 +163,9 @@ class FullscreenActivity : AppCompatActivity() {
     cameraViewMain = findViewById(R.id.svCameraViewMain)
     cameraViewMain.setAspectRatio(640, 480)
     cameraOverlay = findViewById(R.id.svCameraOverlay)
+    scaleGestureDetector = ScaleGestureDetector(this,
+      ScaleListener(cameraOverlay))
+    panGestureDetector = GestureDetector(this, PanListener(cameraOverlay))
 
     cameraViewMain.getHolder().addCallback(object : SurfaceHolder.Callback {
       override fun surfaceCreated(holder: SurfaceHolder) {
@@ -161,10 +199,18 @@ class FullscreenActivity : AppCompatActivity() {
       // select a uvc device
       val list: MutableList<UsbDevice?>? = cameraHelper?.getDeviceList()
       if (list != null && list.size > 0) {
-        Toast.makeText(this, "Devices: %1s".format(list.get(0)?.deviceName), Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+          this,
+          "Device: %1s".format(list.get(0)?.deviceName),
+          Toast.LENGTH_SHORT)
+          .show()
         cameraHelper?.selectDevice(list.get(0))
       } else {
-        Toast.makeText(this, "No usable USB UVC device found!", Toast.LENGTH_LONG).show();
+        Toast.makeText(
+          this,
+          "No usable USB UVC device found!",
+          Toast.LENGTH_LONG)
+          .show()
       }
     }
   }
@@ -318,6 +364,41 @@ class FullscreenActivity : AppCompatActivity() {
   private fun delayedHide(delayMillis: Int) {
     hideHandler.removeCallbacks(hideRunnable)
     hideHandler.postDelayed(hideRunnable, delayMillis.toLong())
+  }
+
+  override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
+    //panGestureDetector.onTouchEvent(motionEvent)
+    //scaleGestureDetector.onTouchEvent(motionEvent)
+    return true
+  }
+
+  private class ScaleListener(var imageView: ImageView) : SimpleOnScaleGestureListener() {
+    private var scaleFactor = 1.0f
+
+    override fun onScale(scaleGestureDetector: ScaleGestureDetector): Boolean {
+      scaleFactor *= scaleGestureDetector.getScaleFactor()
+      scaleFactor = Math.max(1.0f, Math.min(scaleFactor, 5.0f))
+      imageView.setScaleX(scaleFactor)
+      imageView.setScaleY(scaleFactor)
+      return true
+    }
+  }
+
+  private class PanListener(var imageView: ImageView) : GestureDetector.SimpleOnGestureListener() {
+    override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dX: Float, dY: Float): Boolean {
+      // Calculate current scaled boundaries
+      val scaledWidth = imageView.width * imageView.scaleX
+      val scaledHeight = imageView.height * imageView.scaleY
+
+      // Calculate max pan distance (assuming image is centered initially)
+      val maxX = (scaledWidth - imageView.width) / 2f
+      val maxY = (scaledHeight - imageView.height) / 2f
+
+      // Apply and clamp the translations
+      imageView.translationX = (imageView.translationX - dX).coerceIn(-maxX, maxX)
+      imageView.translationY = (imageView.translationY - dY).coerceIn(-maxY, maxY)
+      return false
+    }
   }
 
   companion object {
