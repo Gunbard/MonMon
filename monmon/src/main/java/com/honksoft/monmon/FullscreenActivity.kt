@@ -47,12 +47,11 @@ import java.nio.ByteBuffer
  * status bar and navigation/system bar) with user interaction.
  */
 class FullscreenActivity : AppCompatActivity() {
-
+  private val hideHandler = Handler(Looper.myLooper()!!)
+  private var cameraHelper: ICameraHelper? = null
   private lateinit var binding: ActivityFullscreenBinding
   private lateinit var fullscreenContent: TextView
   private lateinit var fullscreenContentControls: LinearLayout
-  private val hideHandler = Handler(Looper.myLooper()!!)
-  private var cameraHelper: ICameraHelper? = null
   private lateinit var cameraViewMain: AspectRatioSurfaceView
   private lateinit var cameraOverlay: ImageView
   private lateinit var imageTools: ImageTools
@@ -132,8 +131,10 @@ class FullscreenActivity : AppCompatActivity() {
     // Set up the user interaction to manually show or hide the system UI.
     fullscreenContent = binding.fullscreenContent
     fullscreenContent.setOnTouchListener { v, event ->
-      panGestureDetector.onTouchEvent(event)
-      scaleGestureDetector.onTouchEvent(event)
+      if (event.pointerCount == 2) {
+        panGestureDetector.onTouchEvent(event)
+        scaleGestureDetector.onTouchEvent(event)
+      }
 
       when (event.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
@@ -364,12 +365,6 @@ class FullscreenActivity : AppCompatActivity() {
   private fun delayedHide(delayMillis: Int) {
     hideHandler.removeCallbacks(hideRunnable)
     hideHandler.postDelayed(hideRunnable, delayMillis.toLong())
-  }
-
-  override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
-    //panGestureDetector.onTouchEvent(motionEvent)
-    //scaleGestureDetector.onTouchEvent(motionEvent)
-    return true
   }
 
   private class ScaleListener(var imageView: ImageView) : SimpleOnScaleGestureListener() {

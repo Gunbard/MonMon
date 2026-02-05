@@ -20,8 +20,9 @@ class MainActivity : AppCompatActivity() {
       // Handle Permission granted/rejected
       var permissionGranted = true
       permissions.entries.forEach {
-        if (it.key in REQUIRED_PERMISSIONS && it.value == false)
+        if (it.key in REQUIRED_PERMISSIONS && it.value == false) {
           permissionGranted = false
+        }
       }
       if (!permissionGranted) {
         Toast.makeText(
@@ -57,8 +58,7 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-    ContextCompat.checkSelfPermission(
-      baseContext, it
+    ContextCompat.checkSelfPermission(baseContext, it
     ) == PackageManager.PERMISSION_GRANTED
   }
 
