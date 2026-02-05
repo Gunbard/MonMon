@@ -12,6 +12,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.GestureDetector
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener
@@ -190,6 +192,23 @@ class FullscreenActivity : AppCompatActivity() {
   override fun onStop() {
     super.onStop()
     clearCameraHelper()
+  }
+
+  override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    menuInflater.inflate(R.menu.menu_view_settings, menu)
+    return true
+  }
+
+  override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    return when (item.itemId) {
+      R.id.action_settings -> {
+        val dialog = ViewSettingsFragment()
+        // 'supportFragmentManager' is available in AppCompatActivity
+        dialog.show(supportFragmentManager, "view_settings_dialog")
+        true
+      }
+      else -> super.onOptionsItemSelected(item)
+    }
   }
 
   private fun initCameraHelper() {

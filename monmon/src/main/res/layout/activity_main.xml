@@ -5,11 +5,6 @@
     android:background="#2152F0"
     android:orientation="vertical">
 
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1" />
-
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"
@@ -19,9 +14,5 @@
         android:minWidth="200dip"
         android:minHeight="128dip"
         android:text="Open UVC Device" />
-
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
 
 </RelativeLayout>

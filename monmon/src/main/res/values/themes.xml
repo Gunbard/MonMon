@@ -13,4 +13,13 @@
         <item name="fullscreenBackgroundColor">@color/light_blue_600</item>
         <item name="fullscreenTextColor">@color/light_blue_A200</item>
     </style>
+
+    <style name="TransparentDialog" parent="Theme.MaterialComponents.Dialog">
+        <!-- Removes the dark dimming effect -->
+        <item name="android:backgroundDimEnabled">false</item>
+        <!-- Makes the dialog window frame transparent -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- Removes the default border/shadow -->
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
 </resources>
