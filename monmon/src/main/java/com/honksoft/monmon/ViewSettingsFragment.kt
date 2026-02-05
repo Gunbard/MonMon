@@ -5,12 +5,13 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.datastore.preferences.core.edit
 import androidx.fragment.app.DialogFragment
-
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.slider.Slider
+import com.honksoft.monmon.databinding.ActivityFullscreenBinding
+import com.honksoft.monmon.databinding.FragmentViewSettingsBinding
+import kotlinx.coroutines.launch
 
 /**
  * A simple [Fragment] subclass.
@@ -18,16 +19,11 @@ private const val ARG_PARAM2 = "param2"
  * create an instance of this fragment.
  */
 class ViewSettingsFragment : DialogFragment() {
-  // TODO: Rename and change types of parameters
-  private var param1: String? = null
-  private var param2: String? = null
+  private var _binding: FragmentViewSettingsBinding? = null
+  private val binding get() = _binding!!
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    arguments?.let {
-      param1 = it.getString(ARG_PARAM1)
-      param2 = it.getString(ARG_PARAM2)
-    }
     setStyle(STYLE_NORMAL, R.style.TransparentDialog)
   }
 
@@ -36,7 +32,88 @@ class ViewSettingsFragment : DialogFragment() {
     savedInstanceState: Bundle?
   ): View? {
     // Inflate the layout for this fragment
-    return inflater.inflate(R.layout.fragment_view_settings, container, false)
+    _binding = FragmentViewSettingsBinding.inflate(inflater, container, false)
+    return binding.root
+  }
+
+  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
+    lifecycleScope.launch {
+      requireContext().dataStore.data.collect { prefs ->
+        val peakThreshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 50
+        val peakVisiblity = prefs[PreferenceKeys.PEAK_VISIBILITY] ?: PrefsPeakVisiblityType.OVERLAY.ordinal
+        val peakColor = prefs[PreferenceKeys.PEAK_COLOR] ?: PrefsPeakColorType.RED.ordinal
+
+        // Update your UI views here (e.g., a TextView)
+        binding.thresholdSlider.value = peakThreshold.toFloat()
+
+        when (PrefsPeakVisiblityType.entries[peakVisiblity]) {
+          PrefsPeakVisiblityType.OVERLAY -> binding.peakVisOverlay.isChecked = true
+          PrefsPeakVisiblityType.OFF -> binding.peakVisOff.isChecked = true
+          PrefsPeakVisiblityType.EDGES_ONLY -> binding.peakVisEdges.isChecked = true
+        }
+
+        when (PrefsPeakColorType.entries[peakColor]) {
+          PrefsPeakColorType.RED -> binding.peakColorRed.isChecked = true
+          PrefsPeakColorType.GREEN -> binding.peakColorGreen.isChecked = true
+          PrefsPeakColorType.BLUE -> binding.peakColorBlue.isChecked = true
+          PrefsPeakColorType.YELLOW -> binding.peakColorYellow.isChecked = true
+          PrefsPeakColorType.WHITE -> binding.peakColorWhite.isChecked = true
+        }
+
+        // Add change listeners to save
+        binding.thresholdSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+            override fun onStartTrackingTouch(slider: Slider) {
+            }
+
+            override fun onStopTrackingTouch(slider: Slider) {
+              // SAVE ONLY NOW
+              lifecycleScope.launch {
+                requireContext().dataStore.edit { prefs ->
+                  prefs[PreferenceKeys.PEAK_THRESHOLD] = slider.value.toInt()
+                }
+              }
+            }
+        })
+
+        binding.radioGroupPeakVis.setOnCheckedChangeListener { group, checkedId ->
+          val selected = when (checkedId) {
+            R.id.peak_vis_overlay -> PrefsPeakVisiblityType.OVERLAY
+            R.id.peak_vis_off -> PrefsPeakVisiblityType.OFF
+            R.id.peak_vis_edges -> PrefsPeakVisiblityType.EDGES_ONLY
+            else -> PrefsPeakVisiblityType.OVERLAY
+          }
+
+          lifecycleScope.launch {
+            requireContext().dataStore.edit { prefs ->
+              prefs[PreferenceKeys.PEAK_VISIBILITY] = selected.ordinal
+            }
+          }
+        }
+
+        binding.radioGroupPeakColor.setOnCheckedChangeListener { group, checkedId ->
+          val selected = when (checkedId) {
+            R.id.peak_color_red -> PrefsPeakColorType.RED
+            R.id.peak_color_green -> PrefsPeakColorType.GREEN
+            R.id.peak_color_blue -> PrefsPeakColorType.BLUE
+            R.id.peak_color_yellow -> PrefsPeakColorType.YELLOW
+            R.id.peak_color_white -> PrefsPeakColorType.WHITE
+            else -> PrefsPeakColorType.RED
+          }
+          lifecycleScope.launch {
+            requireContext().dataStore.edit { prefs ->
+              prefs[PreferenceKeys.PEAK_COLOR] = selected.ordinal
+            }
+          }
+        }
+      }
+    }
+  }
+
+  override fun onDestroyView() {
+    super.onDestroyView()
+    // 4. Clean up the binding to prevent memory leaks
+    _binding = null
   }
 
   companion object {
@@ -52,10 +129,6 @@ class ViewSettingsFragment : DialogFragment() {
     @JvmStatic
     fun newInstance(param1: String, param2: String) =
       ViewSettingsFragment().apply {
-        arguments = Bundle().apply {
-          putString(ARG_PARAM1, param1)
-          putString(ARG_PARAM2, param2)
-        }
       }
   }
 }
