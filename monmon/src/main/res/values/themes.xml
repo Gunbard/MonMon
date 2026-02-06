@@ -6,6 +6,7 @@
     <style name="Theme.MonMon.Fullscreen" parent="Theme.MonMon">
         <item name="android:actionBarStyle">@style/Widget.Theme.MonMon.ActionBar.Fullscreen</item>
         <item name="android:windowActionBarOverlay">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowBackground">@null</item>
     </style>
 
