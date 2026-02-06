@@ -40,7 +40,7 @@ class ImageTools(context: Context?) {
     return bmpout
   }
 
-  fun matToBitMap(input: Mat): Bitmap? {
+  fun matToBitmap(input: Mat): Bitmap? {
     var bmp: Bitmap? = null
     val rgb = Mat()
     //Imgproc.cvtColor(input, rgb, Imgproc.COLOR_BGR2RGB)

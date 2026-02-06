@@ -26,6 +26,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.lifecycle.lifecycleScope
 import com.herohan.uvcapp.CameraHelper
 import com.herohan.uvcapp.ICameraHelper
 import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE
@@ -35,6 +37,8 @@ import com.serenegiant.usb.IFrameCallback
 import com.serenegiant.usb.Size
 import com.serenegiant.usb.UVCCamera
 import com.serenegiant.widget.AspectRatioSurfaceView
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.Core
 import org.opencv.core.CvType
@@ -241,6 +245,12 @@ class FullscreenActivity : AppCompatActivity() {
     cameraHelper?.selectDevice(device)
   }
 
+  @Volatile
+  private var dontEdge = false
+  @Volatile
+  private var shouldMerge = true
+  @Volatile
+  private var color = 0
   private val stateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
     override fun onAttach(device: UsbDevice) {
       selectDevice(device)
@@ -262,11 +272,36 @@ class FullscreenActivity : AppCompatActivity() {
 //      }
 
       //cameraHelper?.addSurface(cameraViewMain.getHolder().getSurface(), false)
+
       cameraHelper?.setFrameCallback(IFrameCallback { frame: ByteBuffer? ->
+        lifecycleScope.launch {
+          dataStore.data.collect { prefs ->
+            shouldMerge = prefs[PreferenceKeys.PEAK_VISIBILITY] != PrefsPeakVisiblityType.EDGES_ONLY.ordinal
+            dontEdge = prefs[PreferenceKeys.PEAK_VISIBILITY] == PrefsPeakVisiblityType.OFF.ordinal
+            color = prefs[PreferenceKeys.PEAK_COLOR] ?: 1
+          }
+        }
+
+        val mappedColor = when (PrefsPeakColorType.entries[color]) {
+          PrefsPeakColorType.RED -> Scalar(5.0, 0.0, 0.0)
+          PrefsPeakColorType.GREEN -> Scalar(0.0, 5.0, 0.0)
+          PrefsPeakColorType.BLUE -> Scalar(0.0, 0.0, 5.0)
+          PrefsPeakColorType.YELLOW -> Scalar(5.0, 5.0, 0.0)
+          PrefsPeakColorType.WHITE -> Scalar(1.0, 1.0, 1.0)
+        }
+
         val nv21 = ByteArray(frame!!.remaining())
         frame.get(nv21, 0, nv21.size)
-
         val size: Size? = cameraHelper?.getPreviewSize()
+
+        if (dontEdge) {
+          val bmp: Bitmap = imageTools.nv21ToBitmap(nv21, size!!.width, size.height)
+
+          runOnUiThread(Runnable {
+            cameraOverlay.setImageBitmap(bmp)
+          })
+          return@IFrameCallback
+        }
 
         // START PROCESSING FRAME. This could probably be more efficient but requires digging more
         // into OpenCV, which is currently a heap of undocumented trash.
@@ -295,7 +330,7 @@ class FullscreenActivity : AppCompatActivity() {
         Imgproc.cvtColor(cannyEdges, colorized, Imgproc.COLOR_GRAY2RGBA)
 
         // Colorize edges to overlay on source image
-        Core.multiply(colorized, Scalar(5.0, 0.0, 0.0), colorized)
+        Core.multiply(colorized, mappedColor, colorized)
 
         // Thicken lines for better visibility
         val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, org.opencv.core.Size(5.0, 5.0))
@@ -303,10 +338,13 @@ class FullscreenActivity : AppCompatActivity() {
         Imgproc.dilate(colorized, colorized, kernel, Point(-1.0, -1.0), 1)
 
         // Merge overlay with source image
-        Core.addWeighted(rgba, 1.0, colorized, 0.7, 0.0, mergedImage)
+        if (shouldMerge) {
+          Core.addWeighted(rgba, 1.0, colorized, 0.7, 0.0, mergedImage)
+        }
 
+        val finalImage = if (shouldMerge) mergedImage else colorized
         // Convert the OpenCV matrix to a bitmap that Android can use
-        val bmp: Bitmap? = imageTools.matToBitMap(mergedImage)
+        val bmp: Bitmap? = imageTools.matToBitmap(finalImage)
 
         runOnUiThread(Runnable {
           cameraOverlay.setImageBitmap(bmp)

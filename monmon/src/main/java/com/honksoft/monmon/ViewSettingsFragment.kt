@@ -41,13 +41,14 @@ class ViewSettingsFragment : DialogFragment() {
     lifecycleScope.launch {
       requireContext().dataStore.data.collect { prefs ->
         val peakThreshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 50
-        val peakVisiblity = prefs[PreferenceKeys.PEAK_VISIBILITY] ?: PrefsPeakVisiblityType.OVERLAY.ordinal
+        val peakVisibility =
+          prefs[PreferenceKeys.PEAK_VISIBILITY] ?: PrefsPeakVisiblityType.OVERLAY.ordinal
         val peakColor = prefs[PreferenceKeys.PEAK_COLOR] ?: PrefsPeakColorType.RED.ordinal
 
         // Update your UI views here (e.g., a TextView)
         binding.thresholdSlider.value = peakThreshold.toFloat()
 
-        when (PrefsPeakVisiblityType.entries[peakVisiblity]) {
+        when (PrefsPeakVisiblityType.entries[peakVisibility]) {
           PrefsPeakVisiblityType.OVERLAY -> binding.peakVisOverlay.isChecked = true
           PrefsPeakVisiblityType.OFF -> binding.peakVisOff.isChecked = true
           PrefsPeakVisiblityType.EDGES_ONLY -> binding.peakVisEdges.isChecked = true
@@ -60,51 +61,51 @@ class ViewSettingsFragment : DialogFragment() {
           PrefsPeakColorType.YELLOW -> binding.peakColorYellow.isChecked = true
           PrefsPeakColorType.WHITE -> binding.peakColorWhite.isChecked = true
         }
+      }
+    }
 
-        // Add change listeners to save
-        binding.thresholdSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-            override fun onStartTrackingTouch(slider: Slider) {
-            }
+    // Add change listeners to save
+    binding.thresholdSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+        override fun onStartTrackingTouch(slider: Slider) {
+        }
 
-            override fun onStopTrackingTouch(slider: Slider) {
-              // SAVE ONLY NOW
-              lifecycleScope.launch {
-                requireContext().dataStore.edit { prefs ->
-                  prefs[PreferenceKeys.PEAK_THRESHOLD] = slider.value.toInt()
-                }
-              }
-            }
-        })
-
-        binding.radioGroupPeakVis.setOnCheckedChangeListener { group, checkedId ->
-          val selected = when (checkedId) {
-            R.id.peak_vis_overlay -> PrefsPeakVisiblityType.OVERLAY
-            R.id.peak_vis_off -> PrefsPeakVisiblityType.OFF
-            R.id.peak_vis_edges -> PrefsPeakVisiblityType.EDGES_ONLY
-            else -> PrefsPeakVisiblityType.OVERLAY
-          }
-
+        override fun onStopTrackingTouch(slider: Slider) {
+          // SAVE ONLY NOW
           lifecycleScope.launch {
             requireContext().dataStore.edit { prefs ->
-              prefs[PreferenceKeys.PEAK_VISIBILITY] = selected.ordinal
+              prefs[PreferenceKeys.PEAK_THRESHOLD] = slider.value.toInt()
             }
           }
         }
+    })
 
-        binding.radioGroupPeakColor.setOnCheckedChangeListener { group, checkedId ->
-          val selected = when (checkedId) {
-            R.id.peak_color_red -> PrefsPeakColorType.RED
-            R.id.peak_color_green -> PrefsPeakColorType.GREEN
-            R.id.peak_color_blue -> PrefsPeakColorType.BLUE
-            R.id.peak_color_yellow -> PrefsPeakColorType.YELLOW
-            R.id.peak_color_white -> PrefsPeakColorType.WHITE
-            else -> PrefsPeakColorType.RED
-          }
-          lifecycleScope.launch {
-            requireContext().dataStore.edit { prefs ->
-              prefs[PreferenceKeys.PEAK_COLOR] = selected.ordinal
-            }
-          }
+    binding.radioGroupPeakVis.setOnCheckedChangeListener { group, checkedId ->
+      val selected = when (checkedId) {
+        R.id.peak_vis_overlay -> PrefsPeakVisiblityType.OVERLAY
+        R.id.peak_vis_off -> PrefsPeakVisiblityType.OFF
+        R.id.peak_vis_edges -> PrefsPeakVisiblityType.EDGES_ONLY
+        else -> PrefsPeakVisiblityType.OVERLAY
+      }
+
+      lifecycleScope.launch {
+        requireContext().dataStore.edit { prefs ->
+          prefs[PreferenceKeys.PEAK_VISIBILITY] = selected.ordinal
+        }
+      }
+    }
+
+    binding.radioGroupPeakColor.setOnCheckedChangeListener { group, checkedId ->
+      val selected = when (checkedId) {
+        R.id.peak_color_red -> PrefsPeakColorType.RED
+        R.id.peak_color_green -> PrefsPeakColorType.GREEN
+        R.id.peak_color_blue -> PrefsPeakColorType.BLUE
+        R.id.peak_color_yellow -> PrefsPeakColorType.YELLOW
+        R.id.peak_color_white -> PrefsPeakColorType.WHITE
+        else -> PrefsPeakColorType.RED
+      }
+      lifecycleScope.launch {
+        requireContext().dataStore.edit { prefs ->
+          prefs[PreferenceKeys.PEAK_COLOR] = selected.ordinal
         }
       }
     }
