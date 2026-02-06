@@ -64,6 +64,10 @@ class FullscreenActivity : AppCompatActivity() {
   private lateinit var scaleGestureDetector: ScaleGestureDetector
   private lateinit var panGestureDetector: GestureDetector
 
+  fun Float.map(inMin: Float, inMax: Float, outMin: Float, outMax: Float): Float {
+    return (this - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
+  }
+
   @SuppressLint("InlinedApi")
   private val hidePart2Runnable = Runnable {
     // Delayed removal of status and navigation bar
@@ -251,6 +255,9 @@ class FullscreenActivity : AppCompatActivity() {
   private var shouldMerge = true
   @Volatile
   private var color = 0
+  @Volatile
+  private var threshold = 50
+
   private val stateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
     override fun onAttach(device: UsbDevice) {
       selectDevice(device)
@@ -278,7 +285,8 @@ class FullscreenActivity : AppCompatActivity() {
           dataStore.data.collect { prefs ->
             shouldMerge = prefs[PreferenceKeys.PEAK_VISIBILITY] != PrefsPeakVisiblityType.EDGES_ONLY.ordinal
             dontEdge = prefs[PreferenceKeys.PEAK_VISIBILITY] == PrefsPeakVisiblityType.OFF.ordinal
-            color = prefs[PreferenceKeys.PEAK_COLOR] ?: 1
+            color = prefs[PreferenceKeys.PEAK_COLOR] ?: 0
+            threshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 50
           }
         }
 
@@ -323,8 +331,10 @@ class FullscreenActivity : AppCompatActivity() {
         // Blur source image for easier edge detection
         Imgproc.GaussianBlur(imgGray, imgGray, org.opencv.core.Size(5.0, 5.0), 6.0, 6.0)
 
+        val mappedThreshold = (threshold.toFloat()).map(0.0f, 100.0f, -4.0f, 1.5f)
+
         // Do teh edging
-        Imgproc.Canny(imgGray, cannyEdges, 80.0, 100.0)
+        Imgproc.Canny(imgGray, cannyEdges, 80.0 * -mappedThreshold, 100.0 * -mappedThreshold)
 
         // Convert grayscale edges to RGBA colorspace (still gray though)
         Imgproc.cvtColor(cannyEdges, colorized, Imgproc.COLOR_GRAY2RGBA)
