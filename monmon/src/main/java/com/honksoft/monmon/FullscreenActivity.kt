@@ -238,7 +238,7 @@ class FullscreenActivity : AppCompatActivity() {
       } else {
         Toast.makeText(
           this,
-          "No usable USB UVC device found!",
+          "No usable USB UVC device found! Connect one!",
           Toast.LENGTH_LONG)
           .show()
       }

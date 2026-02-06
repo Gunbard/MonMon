@@ -1,14 +1,22 @@
 package com.honksoft.monmon
 
 import android.Manifest
+import android.R.id.message
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.method.LinkMovementMethod
+import android.text.util.Linkify
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.honksoft.monmon.databinding.ActivityMainBinding
@@ -48,7 +56,6 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun openDevice() {
-
     // Request camera permissions
     if (allPermissionsGranted()) {
       startActivity(Intent(this@MainActivity, FullscreenActivity::class.java))
@@ -64,6 +71,38 @@ class MainActivity : AppCompatActivity() {
   private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
     ContextCompat.checkSelfPermission(baseContext, it
     ) == PackageManager.PERMISSION_GRANTED
+  }
+
+  override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    menuInflater.inflate(R.menu.menu_main, menu)
+    return true
+  }
+
+  override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    return when (item.itemId) {
+      R.id.action_info -> {
+        val message = SpannableString("Written with olev by Gunbard\nGitHub: https://github.com/Gunbard/MonMon")
+        Linkify.addLinks(message, Linkify.WEB_URLS)
+        val dialog = AlertDialog.Builder(this)
+          .setTitle("About MonMon")
+          .setMessage(message)
+          .setPositiveButton("That's real fackin neato") { dialog, _ -> dialog.dismiss() }
+          .show()
+
+        val textView = dialog.findViewById<TextView>(android.R.id.message)
+        textView?.movementMethod = LinkMovementMethod.getInstance()
+        true
+      }
+      R.id.action_help -> {
+        AlertDialog.Builder(this)
+          .setTitle("MonMon Help")
+          .setMessage("MonMon will look for the first connected device that supports USB UVC (HDMI capture devices, webcams, etc.)\n\nTAP the screen once to toggle fullscreen and non-fullscreen modes.\n\nPINCH to zoom in and out and use TWO FINGERS to drag the live view. Adjust peaking threshold and other settings with the wrench icon.")
+          .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+          .show()
+        true
+      }
+      else -> super.onOptionsItemSelected(item)
+    }
   }
 
   companion object {

@@ -13,6 +13,6 @@
         android:layout_weight="1"
         android:minWidth="200dip"
         android:minHeight="128dip"
-        android:text="Open UVC Device" />
+        android:text="Open USB UVC Device" />
 
 </RelativeLayout>
