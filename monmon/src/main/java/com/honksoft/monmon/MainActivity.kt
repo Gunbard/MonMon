@@ -3,6 +3,8 @@ package com.honksoft.monmon
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -39,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     val binding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(binding.root)
+    val colorInt = ContextCompat.getColor(this, R.color.semitransparent)
+    supportActionBar?.setBackgroundDrawable(ColorDrawable(colorInt))
 
     binding.button.setOnClickListener { openDevice() }
   }

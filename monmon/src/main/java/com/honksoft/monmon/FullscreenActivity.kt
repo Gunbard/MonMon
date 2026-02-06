@@ -4,7 +4,9 @@ import android.R.attr.onClick
 import android.annotation.SuppressLint
 import android.gesture.Gesture
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.drawable.ColorDrawable
 import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Bundle
@@ -27,6 +29,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.herohan.uvcapp.CameraHelper
 import com.herohan.uvcapp.ICameraHelper
@@ -134,6 +137,8 @@ class FullscreenActivity : AppCompatActivity() {
     binding = ActivityFullscreenBinding.inflate(layoutInflater)
     setContentView(binding.root)
     supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    val colorInt = ContextCompat.getColor(this, R.color.semitransparent)
+    supportActionBar?.setBackgroundDrawable(ColorDrawable(colorInt))
     isFullscreen = true
 
     imageTools = ImageTools(this)
