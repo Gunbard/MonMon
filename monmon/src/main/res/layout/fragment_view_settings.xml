@@ -118,6 +118,24 @@
                 android:text="White" />
 
         </RadioGroup>
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reduce Resolution"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tries to force a lower device resolution, which may improve performance on older devices. Requires preview restart (press BACK and re-open USB device)." />
+
+        <Switch
+            android:id="@+id/reduceRes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Force 720p30" />
     </LinearLayout>
 </ScrollView>

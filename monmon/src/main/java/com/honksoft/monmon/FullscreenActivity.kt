@@ -1,11 +1,7 @@
 package com.honksoft.monmon
 
-import android.R.attr.onClick
 import android.annotation.SuppressLint
-import android.gesture.Gesture
 import android.graphics.Bitmap
-import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
 import android.hardware.usb.UsbDevice
 import android.os.Build
@@ -28,7 +24,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.herohan.uvcapp.CameraHelper
@@ -40,7 +35,6 @@ import com.serenegiant.usb.IFrameCallback
 import com.serenegiant.usb.Size
 import com.serenegiant.usb.UVCCamera
 import com.serenegiant.widget.AspectRatioSurfaceView
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.Core
@@ -100,24 +94,6 @@ class FullscreenActivity : AppCompatActivity() {
 
   private val hideRunnable = Runnable { hide() }
 
-  /**
-   * Touch listener to use for in-layout UI controls to delay hiding the
-   * system UI. This is to prevent the jarring behavior of controls going away
-   * while interacting with activity UI.
-   */
-  private val delayHideTouchListener = View.OnTouchListener { view, motionEvent ->
-    when (motionEvent.action) {
-      MotionEvent.ACTION_DOWN -> if (AUTO_HIDE) {
-        delayedHide(AUTO_HIDE_DELAY_MILLIS)
-      }
-
-      MotionEvent.ACTION_UP -> view.performClick()
-      else -> {
-      }
-    }
-    false
-  }
-
   @SuppressLint("ClickableViewAccessibility")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -130,8 +106,8 @@ class FullscreenActivity : AppCompatActivity() {
       Toast.makeText(
         this,
         "OpenCV initialization failed!",
-        Toast.LENGTH_LONG)
-        .show()
+        Toast.LENGTH_LONG
+      ).show()
     }
 
     binding = ActivityFullscreenBinding.inflate(layoutInflater)
@@ -155,10 +131,12 @@ class FullscreenActivity : AppCompatActivity() {
         MotionEvent.ACTION_DOWN -> {
           isPinching = false
         }
+
         MotionEvent.ACTION_POINTER_DOWN -> {
           // A second finger touched the screen
           isPinching = true
         }
+
         MotionEvent.ACTION_UP -> {
           // Final check: was a pinch active during this touch sequence?
           // scaleDetector.isInProgress remains true until fingers are lifted
@@ -176,8 +154,10 @@ class FullscreenActivity : AppCompatActivity() {
     cameraViewMain = findViewById(R.id.svCameraViewMain)
     cameraViewMain.setAspectRatio(640, 480)
     cameraOverlay = findViewById(R.id.svCameraOverlay)
-    scaleGestureDetector = ScaleGestureDetector(this,
-      ScaleListener(cameraOverlay))
+    scaleGestureDetector = ScaleGestureDetector(
+      this,
+      ScaleListener(cameraOverlay)
+    )
     panGestureDetector = GestureDetector(this, PanListener(cameraOverlay))
 
     cameraViewMain.getHolder().addCallback(object : SurfaceHolder.Callback {
@@ -217,6 +197,7 @@ class FullscreenActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "view_settings_dialog")
         true
       }
+
       else -> super.onOptionsItemSelected(item)
     }
   }
@@ -232,20 +213,23 @@ class FullscreenActivity : AppCompatActivity() {
         Toast.makeText(
           this,
           "Device: %1s".format(list.get(0)?.deviceName),
-          Toast.LENGTH_SHORT)
-          .show()
+          Toast.LENGTH_SHORT
+        ).show()
+        // Pick the first device
+        // TODO: Select from a list
         cameraHelper?.selectDevice(list.get(0))
       } else {
         Toast.makeText(
           this,
           "No usable USB UVC device found! Connect one!",
-          Toast.LENGTH_LONG)
-          .show()
+          Toast.LENGTH_LONG
+        ).show()
       }
     }
   }
 
   private fun clearCameraHelper() {
+    cameraHelper?.stopPreview()
     cameraHelper?.release()
     cameraHelper = null
   }
@@ -256,15 +240,19 @@ class FullscreenActivity : AppCompatActivity() {
 
   @Volatile
   private var dontEdge = false
+
   @Volatile
   private var shouldMerge = true
+
   @Volatile
   private var color = 0
+
   @Volatile
-  private var threshold = 50
+  private var threshold = 40
 
   private val stateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
     override fun onAttach(device: UsbDevice) {
+      // Called any time a USB UVC device is connected
       selectDevice(device)
     }
 
@@ -273,7 +261,18 @@ class FullscreenActivity : AppCompatActivity() {
     }
 
     override fun onCameraOpen(device: UsbDevice?) {
-      cameraHelper?.startPreview()
+      lifecycleScope.launch {
+        dataStore.data.collect { prefs ->
+          val currentVal = prefs[PreferenceKeys.REDUCED_RES] ?: false
+          cameraHelper?.stopPreview()
+
+          if (currentVal) {
+            cameraHelper?.previewSize = Size(7, 1280, 720, 30, listOf(30))
+          }
+
+          cameraHelper?.startPreview()
+        }
+      }
 
 //      val size: Size? = cameraHelper?.getPreviewSize()
 //      if (size != null) {
@@ -288,12 +287,15 @@ class FullscreenActivity : AppCompatActivity() {
       cameraHelper?.setFrameCallback(IFrameCallback { frame: ByteBuffer? ->
         lifecycleScope.launch {
           dataStore.data.collect { prefs ->
-            shouldMerge = prefs[PreferenceKeys.PEAK_VISIBILITY] != PrefsPeakVisiblityType.EDGES_ONLY.ordinal
+            shouldMerge =
+              prefs[PreferenceKeys.PEAK_VISIBILITY] != PrefsPeakVisiblityType.EDGES_ONLY.ordinal
             dontEdge = prefs[PreferenceKeys.PEAK_VISIBILITY] == PrefsPeakVisiblityType.OFF.ordinal
             color = prefs[PreferenceKeys.PEAK_COLOR] ?: 0
-            threshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 50
+            threshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 40
           }
         }
+
+        //Log.d(TAG, "asdf %1b".format(reduceRes))
 
         val mappedColor = when (PrefsPeakColorType.entries[color]) {
           PrefsPeakColorType.RED -> Scalar(5.0, 0.0, 0.0)
@@ -320,10 +322,10 @@ class FullscreenActivity : AppCompatActivity() {
         // into OpenCV, which is currently a heap of undocumented trash.
 
         // Convert from nv21 to something OpenCV can work with
-        var yuv = Mat(size!!.height + size.height/2, size.width, CvType.CV_8UC1)
+        var yuv = Mat(size!!.height + size.height / 2, size.width, CvType.CV_8UC1)
         yuv.put(0, 0, nv21);
         var rgba = Mat(size.width, size.height, CvType.CV_8UC1)
-        Imgproc.cvtColor( yuv, rgba, Imgproc.COLOR_YUV2RGB_NV21, 4 );
+        Imgproc.cvtColor(yuv, rgba, Imgproc.COLOR_YUV2RGB_NV21, 4);
 
         val imgGray = Mat()
         val cannyEdges = Mat()
@@ -348,7 +350,8 @@ class FullscreenActivity : AppCompatActivity() {
         Core.multiply(colorized, mappedColor, colorized)
 
         // Thicken lines for better visibility
-        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, org.opencv.core.Size(5.0, 5.0))
+        val kernel =
+          Imgproc.getStructuringElement(Imgproc.MORPH_RECT, org.opencv.core.Size(5.0, 5.0))
         // Apply dilation (iterations=1 for subtle thickening, more for thicker lines)
         Imgproc.dilate(colorized, colorized, kernel, Point(-1.0, -1.0), 1)
 
@@ -368,9 +371,8 @@ class FullscreenActivity : AppCompatActivity() {
     }
 
     override fun onCameraClose(device: UsbDevice?) {
-      if (cameraHelper != null) {
-        cameraHelper?.removeSurface(cameraViewMain.getHolder().getSurface())
-      }
+      cameraHelper?.stopPreview()
+      cameraHelper?.removeSurface(cameraViewMain.getHolder().getSurface())
     }
 
     override fun onDeviceClose(device: UsbDevice?) {
@@ -467,6 +469,7 @@ class FullscreenActivity : AppCompatActivity() {
 
   companion object {
     private const val TAG = "MonMon"
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * [AUTO_HIDE_DELAY_MILLIS] milliseconds.

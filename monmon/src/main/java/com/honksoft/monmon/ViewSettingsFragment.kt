@@ -1,15 +1,14 @@
 package com.honksoft.monmon
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.datastore.preferences.core.edit
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.slider.Slider
-import com.honksoft.monmon.databinding.ActivityFullscreenBinding
 import com.honksoft.monmon.databinding.FragmentViewSettingsBinding
 import kotlinx.coroutines.launch
 
@@ -40,12 +39,12 @@ class ViewSettingsFragment : DialogFragment() {
     super.onViewCreated(view, savedInstanceState)
     lifecycleScope.launch {
       requireContext().dataStore.data.collect { prefs ->
-        val peakThreshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 50
+        val peakThreshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 40
         val peakVisibility =
           prefs[PreferenceKeys.PEAK_VISIBILITY] ?: PrefsPeakVisiblityType.OVERLAY.ordinal
         val peakColor = prefs[PreferenceKeys.PEAK_COLOR] ?: PrefsPeakColorType.RED.ordinal
+        val reduceRes = prefs[PreferenceKeys.REDUCED_RES] ?: false
 
-        // Update your UI views here (e.g., a TextView)
         binding.thresholdSlider.value = peakThreshold.toFloat()
 
         when (PrefsPeakVisiblityType.entries[peakVisibility]) {
@@ -61,22 +60,24 @@ class ViewSettingsFragment : DialogFragment() {
           PrefsPeakColorType.YELLOW -> binding.peakColorYellow.isChecked = true
           PrefsPeakColorType.WHITE -> binding.peakColorWhite.isChecked = true
         }
+
+        binding.reduceRes.isChecked = reduceRes
       }
     }
 
     // Add change listeners to save
     binding.thresholdSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-        override fun onStartTrackingTouch(slider: Slider) {
-        }
+      override fun onStartTrackingTouch(slider: Slider) {
+      }
 
-        override fun onStopTrackingTouch(slider: Slider) {
-          // SAVE ONLY NOW
-          lifecycleScope.launch {
-            requireContext().dataStore.edit { prefs ->
-              prefs[PreferenceKeys.PEAK_THRESHOLD] = slider.value.toInt()
-            }
+      override fun onStopTrackingTouch(slider: Slider) {
+        // SAVE ONLY NOW
+        lifecycleScope.launch {
+          requireContext().dataStore.edit { prefs ->
+            prefs[PreferenceKeys.PEAK_THRESHOLD] = slider.value.toInt()
           }
         }
+      }
     })
 
     binding.radioGroupPeakVis.setOnCheckedChangeListener { group, checkedId ->
@@ -106,6 +107,14 @@ class ViewSettingsFragment : DialogFragment() {
       lifecycleScope.launch {
         requireContext().dataStore.edit { prefs ->
           prefs[PreferenceKeys.PEAK_COLOR] = selected.ordinal
+        }
+      }
+    }
+
+    binding.reduceRes.setOnCheckedChangeListener { _, isChecked ->
+      lifecycleScope.launch {
+        requireContext().dataStore.edit { prefs ->
+          prefs[PreferenceKeys.REDUCED_RES] = isChecked
         }
       }
     }

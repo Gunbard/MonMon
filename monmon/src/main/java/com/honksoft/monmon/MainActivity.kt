@@ -1,10 +1,8 @@
 package com.honksoft.monmon
 
 import android.Manifest
-import android.R.id.message
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
@@ -69,7 +67,8 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-    ContextCompat.checkSelfPermission(baseContext, it
+    ContextCompat.checkSelfPermission(
+      baseContext, it
     ) == PackageManager.PERMISSION_GRANTED
   }
 
@@ -81,7 +80,8 @@ class MainActivity : AppCompatActivity() {
   override fun onOptionsItemSelected(item: MenuItem): Boolean {
     return when (item.itemId) {
       R.id.action_info -> {
-        val message = SpannableString("Written with olev by Gunbard\nGitHub: https://github.com/Gunbard/MonMon")
+        val message =
+          SpannableString("Written with olev by Gunbard\nGitHub: https://github.com/Gunbard/MonMon")
         Linkify.addLinks(message, Linkify.WEB_URLS)
         val dialog = AlertDialog.Builder(this)
           .setTitle("About MonMon")
@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         textView?.movementMethod = LinkMovementMethod.getInstance()
         true
       }
+
       R.id.action_help -> {
         AlertDialog.Builder(this)
           .setTitle("MonMon Help")
@@ -101,6 +102,7 @@ class MainActivity : AppCompatActivity() {
           .show()
         true
       }
+
       else -> super.onOptionsItemSelected(item)
     }
   }

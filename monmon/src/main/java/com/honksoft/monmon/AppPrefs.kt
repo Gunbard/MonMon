@@ -1,6 +1,7 @@
 package com.honksoft.monmon
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 
@@ -24,4 +25,5 @@ object PreferenceKeys {
   val PEAK_THRESHOLD = intPreferencesKey("peak_threshold")
   val PEAK_VISIBILITY = intPreferencesKey("peak_visibility")
   val PEAK_COLOR = intPreferencesKey("peak_color")
+  val REDUCED_RES = booleanPreferencesKey("reduced_res")
 }
