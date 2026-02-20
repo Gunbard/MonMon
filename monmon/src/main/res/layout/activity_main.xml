@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#2152F0"
@@ -14,5 +16,13 @@
         android:minWidth="200dip"
         android:minHeight="128dip"
         android:text="Open USB UVC Device" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleX="3"
+        android:scaleY="3"
+        app:srcCompat="@drawable/bkg" />
 
 </RelativeLayout>
