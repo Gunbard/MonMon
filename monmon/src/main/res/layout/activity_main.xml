@@ -13,6 +13,9 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:layout_weight="1"
+        android:background="@android:drawable/btn_default"
+        android:backgroundTint="#85A4CEE6"
+        android:backgroundTintMode="multiply"
         android:minWidth="200dip"
         android:minHeight="128dip"
         android:text="Open USB UVC Device" />
@@ -24,5 +27,13 @@
         android:scaleX="3"
         android:scaleY="3"
         app:srcCompat="@drawable/bkg" />
+
+    <ImageView
+        android:id="@+id/imageView2"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        app:srcCompat="@drawable/canny" />
 
 </RelativeLayout>
