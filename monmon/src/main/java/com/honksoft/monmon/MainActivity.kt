@@ -19,6 +19,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.honksoft.monmon.databinding.ActivityMainBinding
 
+/**
+ * App entry point activity
+ */
 class MainActivity : AppCompatActivity() {
   private val activityResultLauncher =
     registerForActivityResult(

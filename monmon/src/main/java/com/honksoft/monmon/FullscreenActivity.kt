@@ -46,8 +46,7 @@ import org.opencv.imgproc.Imgproc
 import java.nio.ByteBuffer
 
 /**
- * An example full-screen activity that shows and hides the system UI (i.e.
- * status bar and navigation/system bar) with user interaction.
+ * Activity for Live View of Device
  */
 class FullscreenActivity : AppCompatActivity() {
   private val hideHandler = Handler(Looper.myLooper()!!)
@@ -76,11 +75,11 @@ class FullscreenActivity : AppCompatActivity() {
       // at compile-time and do nothing on earlier devices.
       fullscreenContent.systemUiVisibility =
         View.SYSTEM_UI_FLAG_LOW_PROFILE or
-          View.SYSTEM_UI_FLAG_FULLSCREEN or
-          View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-          View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-          View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-          View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        View.SYSTEM_UI_FLAG_FULLSCREEN or
+        View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
     }
   }
   private val showPart2Runnable = Runnable {
@@ -274,16 +273,6 @@ class FullscreenActivity : AppCompatActivity() {
         }
       }
 
-//      val size: Size? = cameraHelper?.getPreviewSize()
-//      if (size != null) {
-//        val width = size.width
-//        val height = size.height
-//        //auto aspect ratio
-//        cameraViewMain.setAspectRatio(width, height)
-//      }
-
-      //cameraHelper?.addSurface(cameraViewMain.getHolder().getSurface(), false)
-
       cameraHelper?.setFrameCallback(IFrameCallback { frame: ByteBuffer? ->
         lifecycleScope.launch {
           dataStore.data.collect { prefs ->
@@ -294,8 +283,6 @@ class FullscreenActivity : AppCompatActivity() {
             threshold = prefs[PreferenceKeys.PEAK_THRESHOLD] ?: 40
           }
         }
-
-        //Log.d(TAG, "asdf %1b".format(reduceRes))
 
         val mappedColor = when (PrefsPeakColorType.entries[color]) {
           PrefsPeakColorType.RED -> Scalar(5.0, 0.0, 0.0)
