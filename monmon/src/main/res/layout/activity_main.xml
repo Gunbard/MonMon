@@ -24,8 +24,8 @@
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:scaleX="3"
-        android:scaleY="3"
+        android:scaleX="2"
+        android:scaleY="2"
         app:srcCompat="@drawable/bkg" />
 
     <ImageView
