@@ -260,13 +260,33 @@ class FullscreenActivity : AppCompatActivity() {
     }
 
     override fun onCameraOpen(device: UsbDevice?) {
+      //Log.d(TAG, "Sizes:  %s".format(cameraHelper?.supportedSizeList))
+
       lifecycleScope.launch {
         dataStore.data.collect { prefs ->
-          val currentVal = prefs[PreferenceKeys.REDUCED_RES] ?: false
+          val reduceRes = prefs[PreferenceKeys.REDUCED_RES] ?: false
           cameraHelper?.stopPreview()
 
-          if (currentVal) {
-            cameraHelper?.previewSize = Size(7, 1280, 720, 30, listOf(30))
+          if (reduceRes) {
+            var selectedSize = Size(7, 1280, 720, 30, listOf(30))
+            for (size in cameraHelper?.supportedSizeList!!) {
+              if (size.height == 720) {
+                selectedSize = size
+                break
+              }
+            }
+            cameraHelper?.previewSize = selectedSize
+          } else {
+            // Look for first size closest to 1080p. Ignore fps rating
+            // TODO: Add a size selector dropdown
+            var selectedSize = Size(7, 1280, 720, 30, listOf(30))
+            for (size in cameraHelper?.supportedSizeList!!) {
+              if (size.height == 1080) {
+                selectedSize = size
+                break
+              }
+            }
+            cameraHelper?.previewSize = selectedSize
           }
 
           cameraHelper?.startPreview()
