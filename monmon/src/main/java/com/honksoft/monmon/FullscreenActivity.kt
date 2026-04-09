@@ -261,9 +261,17 @@ class FullscreenActivity : AppCompatActivity() {
 
     override fun onCameraOpen(device: UsbDevice?) {
       //Log.d(TAG, "Sizes:  %s".format(cameraHelper?.supportedSizeList))
-
       lifecycleScope.launch {
         dataStore.data.collect { prefs ->
+          if (cameraHelper?.supportedSizeList == null) {
+            Toast.makeText(
+              this@FullscreenActivity,
+              "Failed to open camera!",
+              Toast.LENGTH_SHORT
+            ).show()
+            return@collect
+          }
+
           val reduceRes = prefs[PreferenceKeys.REDUCED_RES] ?: false
           cameraHelper?.stopPreview()
 
