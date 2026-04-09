@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
   }
 
   companion object {
-    private val REQUIRED_PERMISSIONS =
+    val REQUIRED_PERMISSIONS =
       mutableListOf(
         Manifest.permission.CAMERA,
         Manifest.permission.RECORD_AUDIO

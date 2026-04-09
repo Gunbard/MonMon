@@ -1,6 +1,8 @@
 package com.honksoft.monmon
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.ColorDrawable
 import android.hardware.usb.UsbDevice
@@ -23,6 +25,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -30,6 +33,7 @@ import com.herohan.uvcapp.CameraHelper
 import com.herohan.uvcapp.ICameraHelper
 import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE
 import com.honksoft.monmon.FullscreenActivity.Companion.AUTO_HIDE_DELAY_MILLIS
+import com.honksoft.monmon.MainActivity.Companion.REQUIRED_PERMISSIONS
 import com.honksoft.monmon.databinding.ActivityFullscreenBinding
 import com.serenegiant.usb.IFrameCallback
 import com.serenegiant.usb.Size
@@ -64,6 +68,29 @@ class FullscreenActivity : AppCompatActivity() {
     return (this - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
   }
 
+  private val activityResultLauncher =
+    registerForActivityResult(
+      ActivityResultContracts.RequestMultiplePermissions()
+    )
+    { permissions ->
+      // Handle Permission granted/rejected
+      var permissionGranted = true
+      permissions.entries.forEach {
+        if (it.key in REQUIRED_PERMISSIONS && it.value == false) {
+          permissionGranted = false
+        }
+      }
+      if (!permissionGranted) {
+        Toast.makeText(
+          baseContext,
+          "Permission request denied",
+          Toast.LENGTH_SHORT
+        ).show()
+      } else {
+        initCameraHelper()
+      }
+    }
+
   @SuppressLint("InlinedApi")
   private val hidePart2Runnable = Runnable {
     // Delayed removal of status and navigation bar
@@ -92,6 +119,16 @@ class FullscreenActivity : AppCompatActivity() {
   private var isPinching = false
 
   private val hideRunnable = Runnable { hide() }
+
+  private fun requestPermissions() {
+    activityResultLauncher.launch(REQUIRED_PERMISSIONS)
+  }
+
+  private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+    ContextCompat.checkSelfPermission(
+      baseContext, it
+    ) == PackageManager.PERMISSION_GRANTED
+  }
 
   @SuppressLint("ClickableViewAccessibility")
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -202,6 +239,11 @@ class FullscreenActivity : AppCompatActivity() {
   }
 
   private fun initCameraHelper() {
+    if (!allPermissionsGranted()) {
+      requestPermissions()
+      return
+    }
+
     if (cameraHelper == null) {
       cameraHelper = CameraHelper()
       cameraHelper?.setStateCallback(stateListener)
