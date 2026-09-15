@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_tip"
+        android:icon="@drawable/outline_card_giftcard_24"
+        android:title="Support the developer"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_help"
         android:title="Help"
         android:icon="@android:drawable/ic_menu_help"

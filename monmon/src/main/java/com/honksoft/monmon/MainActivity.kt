@@ -1,5 +1,6 @@
 package com.honksoft.monmon
 
+import BillingManager
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -23,6 +24,11 @@ import com.honksoft.monmon.databinding.ActivityMainBinding
  * App entry point activity
  */
 class MainActivity : AppCompatActivity() {
+  private val billingManager: BillingManager by lazy {
+    BillingManager(applicationContext) // Safely uses application context
+  }
+  private val COFFEE_TIP_ID = "tip_coffee" // Matches the ID created in Play Console
+
   private val activityResultLauncher =
     registerForActivityResult(
       ActivityResultContracts.RequestMultiplePermissions()
@@ -31,7 +37,7 @@ class MainActivity : AppCompatActivity() {
       // Handle Permission granted/rejected
       var permissionGranted = true
       permissions.entries.forEach {
-        if (it.key in REQUIRED_PERMISSIONS && it.value == false) {
+        if (it.key in REQUIRED_PERMISSIONS && !it.value) {
           permissionGranted = false
         }
       }
@@ -106,8 +112,17 @@ class MainActivity : AppCompatActivity() {
         true
       }
 
+      R.id.action_tip -> {
+        launchTipFlow()
+        true
+      }
+
       else -> super.onOptionsItemSelected(item)
     }
+  }
+
+  private fun launchTipFlow() {
+    billingManager.launchTipFlow(this, COFFEE_TIP_ID)
   }
 
   companion object {
