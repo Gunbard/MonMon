@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
   private val billingManager: BillingManager by lazy {
     BillingManager(applicationContext) // Safely uses application context
   }
-  private val COFFEE_TIP_ID = "tip_coffee" // Matches the ID created in Play Console
+  private val COFFEE_TIP_ID = "tip_standard" // Matches the ID created in Play Console
 
   private val activityResultLauncher =
     registerForActivityResult(

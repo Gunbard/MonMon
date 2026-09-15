@@ -13,7 +13,7 @@ android {
     applicationId = "com.honksoft.monmon"
     minSdk = 24
     targetSdk = 37
-    versionCode = 5
+    versionCode = 6
     versionName = "1.2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
