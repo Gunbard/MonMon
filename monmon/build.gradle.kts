@@ -6,13 +6,13 @@ plugins {
 android {
   namespace = "com.honksoft.monmon"
   compileSdk {
-    version = release(36)
+    version = release(37)
   }
 
   defaultConfig {
     applicationId = "com.honksoft.monmon"
     minSdk = 24
-    targetSdk = 36
+    targetSdk = 37
     versionCode = 4
     versionName = "1.1.1"
 
@@ -50,6 +50,7 @@ dependencies {
   implementation(libs.androidx.appcompat)
   implementation(libs.material)
   implementation(libs.androidx.datastore.preferences)
+  implementation(libs.play.billing)
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
